@@ -2,228 +2,116 @@ var window = window;
 
 var game =
 {
-  canvas:
+  canvas: function ()
   {
-    autosize: function ()
-    {
-      if ((game.event.type == 'resize') || (game.event.type == 'load'))
-      {
-        if
-        (
-          (game.canvas.height != window.innerHeight) ||
-          (game.canvas.width != window.innerWidth)
-        )
+    var canvas = window.document.createElement ('canvas');
+        canvas.context = canvas.getContext ('2d');
+
+        canvas.clear = function ()
         {
-          game.canvas.height = window.innerHeight;
-          game.canvas.width = window.innerWidth;
-
-          for (var id in game.canvas)
-          {
-            switch (id)
-            {
-              case 'autosize': break;
-              case 'height': break;
-              case 'part': break;
-              case 'width': break;
-              default:
-                game.canvas[id].height = game.canvas.height;
-                game.canvas[id].width = game.canvas.width;
-            };
-          };
+          canvas.context.clearRect (0, 0, canvas.width, canvas.height);
         };
-      };
-    },
 
-    part: function (part)
-    {
-      return Math.floor (Math.min (game.canvas.width, game.canvas.height) / part);
-    }
+        canvas.resize = function (force)
+        {
+          if ((force) || (game.event.type == 'resize') || (game.event.type == 'run'))
+          canvas.height = window.innerHeight;
+          canvas.width = window.innerWidth;
+        };
+
+    game.canvas = canvas;
+
+    window.document.body.appendChild (canvas);
   },
 
   create:
   {
-    canvas: function (id, layer)
+    set town (json)
     {
-      var canvas = window.document.createElement ('canvas');
-          canvas.context = canvas.getContext ('2d');
-          canvas.id = id;
-          canvas.style.zIndex = (layer) ? layer : 0;
+      var town = {};
+          town.id = game.data.number.town; game.data.number.town++;
+          town.name = (json.name) ? json.name : game.random (game.data.name.town) + ' ' + town.id;
+          town.x = (json.x) ? json.x : game.random (0, game.canvas.width);
+          town.y = (json.y) ? json.y : game.random (0, game.canvas.height);
 
-      game.canvas[id] = canvas;
-
-      window.document.body.appendChild (canvas);
-    },
-
-    set city (json)
-    {
-      var city = {};
-          city.id = (json.id) ? json.id : game.object.city.length;
-          city.mouseout = true;
-          city.name = json.name;
-          city.r = (json.r) ? json.r : game.canvas.part (64);
-          city.x = (json.x) ? json.x : game.random (0, game.canvas.width);
-          city.y = (json.y) ? json.y : game.random (0, game.canvas.height);
-
-
-          city.info = function (context)
+          town.update = function ()
           {
-            var event = game.event;
-            if (event.type == 'mousemove')
-            {
-              var d = Math.sqrt (Math.pow (event.x - city.x, 2) + Math.pow (event.y - city.y, 2));
-              if (d < city.r)
-              {
-                if (city.mouseout)
-                {
-                  var text = city.name;
-                  city.mouseout = false;
-                  context.font = game.option.font.size + ' ' + game.option.font.family;
-                  context.fillText (text, city.x, city.y - game.canvas.part (32));
-                };
-              }
-              else
-              {
-                if (!city.mouseout)
-                {
-                  context.clearRect (city.x, city.y - game.canvas.part (16), 70, 25);
-                  city.mouseout = true;
-                };
-              };
-            };
+
           };
 
-          city.show = function (context)
-          {
-            if ((game.event.type == 'run') || (game.event.type == 'resize'))
-            {
-              context.beginPath ();
-              context.arc (city.x, city.y, city.r, 0, 2 * Math.PI);
-              context.stroke ();
-            };
-          };
-
-          city.update = function ()
-          {
-            city.info (game.canvas.background.context);
-            city.show (game.canvas.background.context);
-          };
-
-      game.object.city[city.id] = city;
+      game.data.town[town.id] = town;
     }
   },
 
-  draw:
+  data:
   {
+    name:
+    {
+        town:
+        [
+          'Amsterdam',
+          'Beijing',
+          'Berlin',
+          'Moscow',
+          'Paris',
+          'Tokyo'
+        ]
+    },
 
+    number:
+    {
+      town: 0
+    },
+
+    town: {}
+  },
+
+  draw: function ()
+  {
+    game.canvas.clear ();
+
+    if (game.scene > 0)
+    {
+      for (var i = 0; i < game.scene.length; i++)
+      {
+        game.scene [i] ();
+      };
+    };
+
+    game.scene = [];
   },
 
   event: {},
 
-  events: function ()
+  generate:
   {
-    window.onload = function (event)
+    map: function ()
     {
-      game.update (event);
-    };
-
-    window.onmousedown = function (event)
-    {
-      game.update (event);
-    };
-
-    window.onmousemove = function (event)
-    {
-      game.update (event);
-    };
-
-    window.onresize = function ()
-    {
-      game.update (event);
-    };
-
-    window.setInterval
-    (
-      function ()
-      {
-        game.update ({type: 'tick'});
-      },
-      game.option.interval
-    );
-  },
-
-  set info (message)
-  {
-    window.console.info (message);
-  },
-
-  load: function ()
-  {
-    game.event.type = 'load';
-
-    game.create.canvas ('background', 0);
-    game.canvas.autosize ();
-
-    game.object.cities.create (game.option.city.number);
-
-    game.events ();
-  },
-
-  set log (message)
-  {
-    window.console.log (message);
-  },
-
-  object:
-  {
-    cities:
-    {
-      create: function (number)
-      {
-          for (var i = 0; i < number; i++)
-          {
-            var name = game.random (game.option.city.names) + ' ' + i;
-            game.create.city =
-            {
-              id: i,
-              name: name
-            };
-          };
-      },
-
-      update: function ()
-      {
-        for (var id in game.object.city)
-        {
-          game.object.city[id].update ();
-        };
-      }
+      game.generate.town ();
     },
-    city: {}
+
+    town: function ()
+    {
+      for (var i = 0; i < game.option.town.number; i++)
+      {
+        game.create.town = {};
+      }
+    }
+  },
+
+  set log (string)
+  {
+    window.console.log (string);
   },
 
   option:
   {
-    city:
+    interval: 1000,
+
+    town:
     {
-        names:
-        [
-          'Berlin',
-          'Moscow',
-          'New York',
-          'Paris',
-          'Tokyo'
-        ],
-
-        number: 3
-    },
-
-    font:
-    {
-      family: 'Arial',
-      size: '12px'
-    },
-
-    interval: 1000
+      number: 3
+    }
   },
 
   random: function (min, max, float)
@@ -253,18 +141,33 @@ var game =
 
   run: function ()
   {
-    game.load ();
-    game.update ({type: 'run'});
+    game.canvas ();
+
+    game.generate.map ();
+
+    game.event.type = 'run';
+    game.update ();
+
+    window.onload = function () { game.event = event; game.update (); };
+    window.onmousedown = function () { game.event = event; game.update (); };
+    window.onmouseup = function () { game.event = event; game.update (); };
+    window.onresize = function () { game.event = event; game.update (); };
+
+    window.setInterval (function () { game.event = {type: 'tick'}; game.update (); }, game.option.interval);
   },
 
-  update: function (event)
+  scene: [],
+
+  update: function ()
   {
-    game.event = event;
-    game.info = 'Event: ' + event.type;
+    game.log = game.event.type;
 
-    game.canvas.autosize ();
+    game.canvas.resize ();
 
-    game.object.cities.update ();
+    for (var id in game.data.town)
+    {
+      game.data.town[id].update ();
+    };
   }
 };
 
