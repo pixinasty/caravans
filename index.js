@@ -7,6 +7,10 @@ var game =
     var canvas = window.document.createElement ('canvas');
         canvas.context = canvas.getContext ('2d');
 
+        canvas.scale = {};
+        canvas.h = 0;
+        canvas.w = 0;
+
         canvas.clear = function ()
         {
           canvas.context.clearRect (0, 0, canvas.width, canvas.height);
@@ -15,8 +19,12 @@ var game =
         canvas.resize = function (force)
         {
           if ((force) || (game.event.type == 'resize') || (game.event.type == 'run'))
-          canvas.height = window.innerHeight;
-          canvas.width = window.innerWidth;
+          {
+            canvas.h = (canvas.h == 0) ? 1 : canvas.height / window.innerHeight;
+            canvas.w = (canvas.w == 0) ? 1 : canvas.width / window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+          };
         };
 
     game.canvas = canvas;
@@ -31,12 +39,42 @@ var game =
       var town = {};
           town.id = game.data.number.town; game.data.number.town++;
           town.name = (json.name) ? json.name : game.random (game.data.name.town) + ' ' + town.id;
-          town.x = (json.x) ? json.x : game.random (0, game.canvas.width);
-          town.y = (json.y) ? json.y : game.random (0, game.canvas.height);
+
+          town.r = 10;
+          town.x = (json.x) ? json.x : game.random (0 + town.r, game.canvas.width - town.r);
+          town.y = (json.y) ? json.y : game.random (0 + town.r, game.canvas.height - town.r);
+
+
+          town.show = function ()
+          {
+            game.canvas.context.beginPath ();
+            game.canvas.context.arc (town.x, town.y, town.r, 0, 2 * Math.PI);
+            game.canvas.context.fill ();
+            game.canvas.context.stroke ();
+          };
 
           town.update = function ()
           {
-
+            switch (game.event.type)
+            {
+              case 'mousedown':
+                break;
+              case 'mouseup':
+                break;
+              case 'resize':
+                town.r = town.r / game.canvas.w;
+                town.x = town.x / game.canvas.w;
+                town.y = town.y / game.canvas.h;
+                town.show ();
+                break;
+              case 'run':
+                break;
+              case 'tick':
+                break;
+              default:
+                town.show ();
+                break;
+            };
           };
 
       game.data.town[town.id] = town;
@@ -110,7 +148,7 @@ var game =
 
     town:
     {
-      number: 3
+      number: 30
     }
   },
 
@@ -143,10 +181,10 @@ var game =
   {
     game.canvas ();
 
-    game.generate.map ();
-
-    game.event.type = 'run';
+    game.event = { type: 'run' };
     game.update ();
+
+    game.generate.map ();
 
     window.onload = function () { game.event = event; game.update (); };
     window.onmousedown = function () { game.event = event; game.update (); };
